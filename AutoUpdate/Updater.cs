@@ -40,12 +40,16 @@ namespace AutoUpdate
         }
         private static void LoadGitHubConfig()
         {
-            string configDir = Path.GetDirectoryName(Plugin.Instance.Config.RepositoriesConfigPath);
+            string configDir = Path.GetDirectoryName(Plugin.Instance.Config.GitHubConfigPath);
             string githubConfigPath = Path.Combine(configDir, "github.json");
-
+            string dir = Path.GetDirectoryName(githubConfigPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            
             if (!File.Exists(githubConfigPath))
             {
-                Log.Info("GitHub token configuration (github.json) not found. Creating an example file.");
                 var defaultConfig = new GitHubConfig
                 {
                     Enabled = false,
