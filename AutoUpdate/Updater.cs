@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using AutoUpdate.Extensions;
 using Newtonsoft.Json;
@@ -13,7 +14,6 @@ namespace AutoUpdate
 {
     public static class Updater
     {
-        private static Log Log = new Log();
         private class UpdateResult
         {
             public string PluginName { get; set; }
@@ -32,16 +32,54 @@ namespace AutoUpdate
             NoDllFound,
             WriteError
         }
-
+        private static GitHubConfig _githubConfig;
         private static readonly HttpClient HttpClient = new HttpClient();
-
         static Updater()
         {
             HttpClient.DefaultRequestHeaders.Add("User-Agent", "AutoUpdate-Plugin-for-EXILED");
         }
+        private static void LoadGitHubConfig()
+        {
+            string configDir = Path.GetDirectoryName(Plugin.Instance.Config.RepositoriesConfigPath);
+            string githubConfigPath = Path.Combine(configDir, "github.json");
+
+            if (!File.Exists(githubConfigPath))
+            {
+                Log.Info("GitHub token configuration (github.json) not found. Creating an example file.");
+                var defaultConfig = new GitHubConfig
+                {
+                    Enabled = false,
+                    Token = "Your-Fine-Grained-PAT-Here"
+                };
+                
+                File.WriteAllText(githubConfigPath, JsonConvert.SerializeObject(defaultConfig, Formatting.Indented));
+                Log.Info("To increase the API request limit, enable and configure your token in github.json.");
+                _githubConfig = defaultConfig;
+                return;
+            }
+
+            try
+            {
+                _githubConfig = JsonConvert.DeserializeObject<GitHubConfig>(File.ReadAllText(githubConfigPath));
+                if (_githubConfig != null && _githubConfig.Enabled && !string.IsNullOrEmpty(_githubConfig.Token))
+                {
+                    Log.Debug("GitHub PAT token loaded and enabled.");
+                }
+                else
+                {
+                    Log.Debug("GitHub PAT token is disabled or not provided. Using unauthenticated requests.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to load or parse github.json: {ex.Message}. Using unauthenticated requests.");
+                _githubConfig = new GitHubConfig { Enabled = false };
+            }
+        }
 
         public static async Task CheckForUpdates()
         {
+            LoadGitHubConfig();
             var configPath = Plugin.Instance.Config.RepositoriesConfigPath;
             if (!File.Exists(configPath))
             {
@@ -89,7 +127,7 @@ namespace AutoUpdate
                 return;
             }
 
-            Log.Info($"[AutoUpdate] Starting update check for {repositories.Count} plugins...");
+            Log.Info($"Starting update check for {repositories.Count} plugins...");
 
             var results = new List<UpdateResult>();
 
@@ -98,7 +136,6 @@ namespace AutoUpdate
                 string pluginName = repoEntry.Key;
                 RepositoryConfig repoConfig = repoEntry.Value;
                 UpdateResult result = new UpdateResult { PluginName = pluginName };
-
                 try
                 {
                     if (string.IsNullOrEmpty(repoConfig.User) || string.IsNullOrEmpty(repoConfig.Repository))
@@ -120,8 +157,16 @@ namespace AutoUpdate
                     result.OldVersion = targetPlugin.Version;
                     string repoSlug = $"{repoConfig.User}/{repoConfig.Repository}";
                     string apiUrl = $"https://api.github.com/repos/{repoSlug}/releases/latest";
-                    HttpResponseMessage response = await HttpClient.GetAsync(apiUrl);
-
+                    HttpResponseMessage response;
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, apiUrl))
+                    {
+                        if (_githubConfig is { Enabled: true } && !string.IsNullOrEmpty(_githubConfig.Token))
+                        {
+                            request.Headers.Authorization = new AuthenticationHeaderValue("token", _githubConfig.Token);
+                        }
+                        response = await HttpClient.SendAsync(request);
+                    }
+                    
                     if (!response.IsSuccessStatusCode)
                     {
                         result.Status = UpdateStatus.ApiError;
@@ -129,7 +174,7 @@ namespace AutoUpdate
                         results.Add(result);
                         continue;
                     }
-
+                    
                     string json = await response.Content.ReadAsStringAsync();
                     var latestRelease = JsonConvert.DeserializeObject<GitHubRelease>(json);
                     
@@ -193,72 +238,128 @@ namespace AutoUpdate
             
             LogSummary(results);
         }
-
         private static async Task<bool> DownloadAndOverwriteFile(IPlugin<IConfig> plugin, GitHubAsset asset)
         {
             try
             {
                 string pluginsDirectory = Exiled.API.Features.Paths.Plugins;
-                string dllFileName = $"{plugin.Name}.dll"; 
+                string dllFileName = Path.GetFileName(plugin.Assembly.Location);
                 string finalPluginPath = Path.Combine(pluginsDirectory, dllFileName);
-                
-                byte[] fileBytes = await HttpClient.GetByteArrayAsync(asset.DownloadUrl);
+                byte[] fileBytes;
+                using (var request = new HttpRequestMessage(HttpMethod.Get, asset.DownloadUrl))
+                {
+                    if (_githubConfig is { Enabled: true } && !string.IsNullOrEmpty(_githubConfig.Token))
+                    {
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _githubConfig.Token);
+                    }
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+
+                    var response = await HttpClient.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
+                    fileBytes = await response.Content.ReadAsByteArrayAsync();
+                }
                 File.WriteAllBytes(finalPluginPath, fileBytes);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Log.Error($"Failed to download or write plugin file for {plugin.Name}: {ex.Message}");
                 return false;
             }
         }
-        
         private static void LogSummary(List<UpdateResult> results)
         {
+            const int innerWidth = 80;
+
+            string topBorder = "╔" + new string('═', innerWidth) + "╗";
+            string middleSeparator = "╠" + new string('═', innerWidth) + "╣";
+            string bottomBorder = "╚" + new string('═', innerWidth) + "╝";
+
             Log.Update("");
-            Log.Update("╔══════════════════════════════════════════════════════════════════════════════╗");
+            Log.Update(topBorder);
+
             string title = "AutoUpdate - Scan Summary";
-            int padding = (78 - title.Length) / 2;
-            Log.Update($"║{title.PadLeft(title.Length + padding).PadRight(78)}║");
-            Log.Update("╠══════════════════════════════════════════════════════════════════════════════╣");
+            int padding = (innerWidth - title.Length) / 2;
+            Log.Update($"║{title.PadLeft(title.Length + padding).PadRight(innerWidth)}║");
 
-            foreach (var result in results)
+            Log.Update(middleSeparator);
+
+            if (results.Any())
             {
-                string content = "";
-                switch (result.Status)
+                foreach (var result in results)
                 {
-                    case UpdateStatus.Updated:
-                        content = $" [↑] {result.PluginName}: Updated from v{result.OldVersion} to v{result.NewVersion}";
-                        break;
-                    case UpdateStatus.UpToDate:
-                        content = $" [✓] {result.PluginName}: Is up to date (v{result.OldVersion})";
-                        break;
-                    case UpdateStatus.PluginNotFound:
-                        content = $" [X] {result.PluginName}: Plugin not found on this server.";
-                        break;
-                    case UpdateStatus.ApiError:
-                    case UpdateStatus.NoDllFound:
-                    case UpdateStatus.WriteError:
-                    case UpdateStatus.ConfigError:
-                        content = $" [X] {result.PluginName}: Error - {result.ErrorMessage}";
-                        break;
+                    string content = "";
+                    switch (result.Status)
+                    {
+                        case UpdateStatus.Updated:
+                            content = $"[↑] {result.PluginName}: Updated from v{result.OldVersion} to v{result.NewVersion}";
+                            break;
+                        case UpdateStatus.UpToDate:
+                            content = $"[✓] {result.PluginName}: Is up to date (v{result.OldVersion})";
+                            break;
+                        case UpdateStatus.PluginNotFound:
+                            content = $"[X] {result.PluginName}: Plugin not found on this server.";
+                            break;
+                        case UpdateStatus.ApiError:
+                        case UpdateStatus.NoDllFound:
+                        case UpdateStatus.WriteError:
+                        case UpdateStatus.ConfigError:
+                            content = $"[X] {result.PluginName}: Error - {result.ErrorMessage}";
+                            break;
+                    }
+                    LogWrappedLine(content, innerWidth);
                 }
-                Log.Update($"║{content.PadRight(78)}║");
-            }
-
-            Log.Update("╠══════════════════════════════════════════════════════════════════════════════╣");
-            int updatesFound = results.Count(r => r.Status == UpdateStatus.Updated);
-            if (updatesFound > 0)
-            {
-                string updateWord = GetEnglishUpdateForm(updatesFound);
-                string summaryContent = $" Found {updatesFound} {updateWord}. A FULL SERVER RESTART is required.";
-                Log.Update($"║{summaryContent.PadRight(78)}║");
             }
             else
             {
-                Log.Update($"║ No new updates found. Everything is up to date.                              ║");
+                LogWrappedLine("No plugins configured for auto-update.", innerWidth);
             }
-            Log.Update("╚══════════════════════════════════════════════════════════════════════════════╝");
+            
+            Log.Update(middleSeparator);
+
+            int updatesFound = results.Count(r => r.Status == UpdateStatus.Updated);
+            string summaryContent;
+            if (updatesFound > 0)
+            {
+                string updateWord = GetEnglishUpdateForm(updatesFound);
+                summaryContent = $"Found {updatesFound} {updateWord}. A FULL SERVER RESTART is required.";
+            }
+            else
+            {
+                summaryContent = "No new updates found. Everything is up to date.";
+            }
+            
+            LogWrappedLine(summaryContent, innerWidth);
+            
+            Log.Update(bottomBorder);
             Log.Update("");
+        }
+        private static void LogWrappedLine(string text, int maxWidth)
+        {
+            const int leftPadding = 1; 
+            string paddingString = new string(' ', leftPadding);
+            int textMaxWidth = maxWidth - leftPadding;
+            var words = text.Split(' ');
+            var currentLine = new System.Text.StringBuilder();
+
+            foreach (var word in words)
+            {
+                if (currentLine.Length > 0 && currentLine.Length + word.Length + 1 > textMaxWidth)
+                {
+                    Log.Update($"║{paddingString}{currentLine.ToString().PadRight(textMaxWidth)}║");
+                    currentLine.Clear();
+                }
+                if (currentLine.Length > 0)
+                {
+                    currentLine.Append(" ");
+                }
+                currentLine.Append(word);
+            }
+            
+            if (currentLine.Length > 0)
+            {
+                Log.Update($"║{paddingString}{currentLine.ToString().PadRight(textMaxWidth)}║");
+            }
         }
         private static string GetEnglishUpdateForm(int count)
         {
