@@ -35,7 +35,7 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 ```yaml
 auto_update:
   debug: false
-  # Path to the JSON file containing the list of plugins to update. Format: {"PluginName": "GitHubUser/RepoName"}
+  # Path to the JSON file containing the list of plugins to update.
   repositories_config_path: '/home/container/.config/EXILED/Configs/AutoUpdate/repositories.json'
   # Run updater at start
   run_updater_at_start: true
