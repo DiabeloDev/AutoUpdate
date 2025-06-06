@@ -49,7 +49,7 @@ namespace AutoUpdate
                 var defaultConfig = new GitHubConfig
                 {
                     Enabled = false,
-                    Token = "Your-Fine-Grained-PAT-Here"
+                    Token = "Your-GitHub-PAT-Here"
                 };
                 
                 File.WriteAllText(githubConfigPath, JsonConvert.SerializeObject(defaultConfig, Formatting.Indented));
