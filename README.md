@@ -30,6 +30,13 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 }
 ```
 6. Restart the server.
+7. Optionally, configure the `github.json` file (details below).
+```json
+{
+  "enabled": false,
+  "token": "Your-GitHub-PAT-Here"
+}
+```
 
 ## Configuration
 ```yaml
