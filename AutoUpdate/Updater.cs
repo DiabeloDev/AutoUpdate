@@ -93,7 +93,7 @@ namespace AutoUpdate
                             Repository = "AutoUpdate"
                         }
                     },
-                    { 
+                    {
                         "SCPStats", new RepositoryConfig 
                         { 
                             User = "PintTheDragon", 
@@ -243,14 +243,14 @@ namespace AutoUpdate
             try
             {
                 string pluginsDirectory = Exiled.API.Features.Paths.Plugins;
-                string dllFileName = Path.GetFileName(plugin.Assembly.Location);
+                string dllFileName = $"{plugin.Name}.dll"; 
                 string finalPluginPath = Path.Combine(pluginsDirectory, dllFileName);
                 byte[] fileBytes;
                 using (var request = new HttpRequestMessage(HttpMethod.Get, asset.DownloadUrl))
                 {
                     if (_githubConfig is { Enabled: true } && !string.IsNullOrEmpty(_githubConfig.Token))
                     {
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _githubConfig.Token);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("token", _githubConfig.Token);
                     }
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
 
