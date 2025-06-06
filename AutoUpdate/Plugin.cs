@@ -13,7 +13,6 @@ namespace AutoUpdate
         public override void OnEnabled()
         {
             Instance = this;
-            Extensions.UpdateChecker.RunAsync();
             if (Config.RunUpdaterAtStart)
             {
                 Updater.CheckForUpdates().ConfigureAwait(false);

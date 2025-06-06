@@ -106,7 +106,6 @@
         <Compile Include="Models\RepositoryConfig.cs" />
         <Compile Include="Updater.cs" />
         <Compile Include="Config.cs" />
-        <Compile Include="Extensions\AutoUpdate.cs" />
         <Compile Include="Extensions\Log.cs" />
         <Compile Include="Models\GitHub.cs" />
         <Compile Include="Plugin.cs" />

@@ -48,6 +48,13 @@ namespace AutoUpdate
                 Log.Warn($"Configuration file not found: {configPath}. Creating an example file.");
                 var exampleRepos = new Dictionary<string, RepositoryConfig>
                 {
+                    {
+                        "AutoUpdate", new RepositoryConfig
+                        {
+                            User = "DiabeloDev",
+                            Repository = "AutoUpdate"
+                        }
+                    },
                     { 
                         "SCPStats", new RepositoryConfig 
                         { 
