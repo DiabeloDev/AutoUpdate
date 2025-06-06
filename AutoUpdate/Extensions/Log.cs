@@ -4,6 +4,13 @@ namespace AutoUpdate.Extensions;
 
 public class Log
 {
+    public static void Debug(string message)
+    {
+        if (Plugin.Instance.Config.Debug)
+        {
+            LabApi.Features.Console.Logger.Raw($"[Debug] [{Plugin.Instance.Name}] {message}", ConsoleColor.Green);
+        }
+    }
     public static void Info(string message)
     {
         LabApi.Features.Console.Logger.Raw($"[INFO] [{Plugin.Instance.Name}] {message}", ConsoleColor.DarkBlue);

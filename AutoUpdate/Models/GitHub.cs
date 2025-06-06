@@ -18,4 +18,12 @@ namespace AutoUpdate.Models
         [JsonProperty("browser_download_url")]
         public string DownloadUrl { get; set; }
     }
+    public class GitHubConfig
+    {
+        [JsonProperty("enabled")]
+        public bool Enabled { get; set; }
+
+        [JsonProperty("token")]
+        public string Token { get; set; }
+    }
 }
