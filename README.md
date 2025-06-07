@@ -14,7 +14,7 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 2. Place the plugin `AutoUpdate.dll` file into the `EXILED/Plugins` folder on your server.
 3. Place the plugin `Newtonsoft.Json.dll` file into the `EXILED/Plugins/dependencies` folder on your server.
 4. Run the server once to generate configuration files.
-5. Configure the `repositories.json` file (details below).
+5. Configure the `EXILED/Configs/AutoUpdate/repositories.json` file (details below).
 ```json
 {
   "SCPStats": {
@@ -30,7 +30,7 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 }
 ```
 6. Restart the server.
-7. Optionally, configure the `github.json` file (details below).
+7. Optionally, configure the `EXILED/Configs/AutoUpdate/github.json` file (details below).
 ```json
 {
   "enabled": false,
