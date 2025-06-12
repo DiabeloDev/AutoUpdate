@@ -12,9 +12,9 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 ## Installation
 1. Download the latest version from the [Releases tab](https://github.com/DiabeloDev/AutoUpdate/releases/latest).
 2. Place the plugin `AutoUpdate.dll` file into the `EXILED/Plugins` folder on your server.
-3. Place the plugin `Newtonsoft.Json.dll` file into the `EXILED/Plugins/dependencies` folder on your server.
+3. Place the dependency `Newtonsoft.Json.dll` file into the `EXILED/Plugins/dependencies` folder on your server.
 4. Run the server once to generate configuration files.
-5. Configure the `repositories.json` file (details below).
+5. Configure the `EXILED/Configs/AutoUpdate/repositories.json` file (details below).
 ```json
 {
   "SCPStats": {
@@ -30,7 +30,7 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 }
 ```
 6. Restart the server.
-7. Optionally, configure the `github.json` file (details below).
+7. Optionally, configure the `EXILED/Configs/AutoUpdate/github.json` file (details below).
 ```json
 {
   "enabled": false,
@@ -41,9 +41,10 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 ## Configuration
 ```yaml
 auto_update:
+  is_enabled: true
   debug: false
-  # Path to the JSON file containing the list of plugins to update.
   repositories_config_path: '/home/container/.config/EXILED/Configs/AutoUpdate/repositories.json'
+  git_hub_config_path: '/home/container/.config/EXILED/Configs/AutoUpdate/github.json'
   # Run updater at start
   run_updater_at_start: true
 ```
