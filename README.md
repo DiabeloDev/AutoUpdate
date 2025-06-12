@@ -12,7 +12,7 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 ## Installation
 1. Download the latest version from the [Releases tab](https://github.com/DiabeloDev/AutoUpdate/releases/latest).
 2. Place the plugin `AutoUpdate.dll` file into the `EXILED/Plugins` folder on your server.
-3. Place the plugin `Newtonsoft.Json.dll` file into the `EXILED/Plugins/dependencies` folder on your server.
+3. Place the dependency `Newtonsoft.Json.dll` file into the `EXILED/Plugins/dependencies` folder on your server.
 4. Run the server once to generate configuration files.
 5. Configure the `EXILED/Configs/AutoUpdate/repositories.json` file (details below).
 ```json
