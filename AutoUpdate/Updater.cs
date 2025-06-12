@@ -247,7 +247,7 @@ namespace AutoUpdate
             try
             {
                 string pluginsDirectory = Exiled.API.Features.Paths.Plugins;
-                string dllFileName = $"{plugin.Name}.dll"; 
+                string dllFileName = $"{plugin.Assembly.GetName().Name}.dll"; 
                 string finalPluginPath = Path.Combine(pluginsDirectory, dllFileName);
                 byte[] fileBytes;
                 using (var request = new HttpRequestMessage(HttpMethod.Get, asset.DownloadUrl))
