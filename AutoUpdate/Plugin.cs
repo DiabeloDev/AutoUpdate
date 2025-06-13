@@ -7,8 +7,8 @@ namespace AutoUpdate
     {
         public override string Author { get; } = ".Diabelo";
         public override string Name { get; } = "AutoUpdate";
-        public override Version Version => new Version(1, 1, 0);
-        public override Version RequiredExiledVersion { get; } = new Version(9, 6, 0);
+        public override Version Version => new Version(1, 1, 1);
+        public override Version RequiredExiledVersion { get; } = new Version(9, 6, 1);
         public static Plugin Instance { get; private set; }
         public override void OnEnabled()
         {
