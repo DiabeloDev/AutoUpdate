@@ -20,10 +20,7 @@ namespace AutoUpdate.Commands
         {
             if (arguments.Count == 0)
             {
-                response = "You must provide a subcommand. Available options: \n" +
-                           "- au check\n" +
-                           "- au list\n" +
-                           "- au info <PluginName>";
+                response = $"Unknown subcommand. Available options: check, list, info.";
                 return false;
             }
 
