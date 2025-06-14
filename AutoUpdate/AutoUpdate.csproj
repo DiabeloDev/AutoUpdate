@@ -33,6 +33,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Assembly-CSharp">
@@ -98,6 +99,9 @@
           <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
         </Reference>
         <Reference Include="System.Xml"/>
+        <Reference Include="UnityEngine.CoreModule">
+          <HintPath>..\..\EXILED_REFERENCES\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
         <Reference Include="YamlDotNet, Version=11.0.0.0, Culture=neutral, PublicKeyToken=ec19458f3c15af5e, processorArchitecture=MSIL">
           <HintPath>..\packages\ExMod.Exiled.9.6.1\lib\net48\YamlDotNet.dll</HintPath>
         </Reference>

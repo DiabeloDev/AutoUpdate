@@ -8,23 +8,23 @@ public class Log
     {
         if (Plugin.Instance.Config.Debug)
         {
-            LabApi.Features.Console.Logger.Raw($"[Debug] [{Plugin.Instance.Name}] {message}", ConsoleColor.Green);
+            ServerConsole.AddLog($"[Debug] [{Plugin.Instance.Name}] {message}", ConsoleColor.Green);
         }
     }
     public static void Info(string message)
     {
-        LabApi.Features.Console.Logger.Raw($"[INFO] [{Plugin.Instance.Name}] {message}", ConsoleColor.DarkBlue);
+        ServerConsole.AddLog($"[INFO] [{Plugin.Instance.Name}] {message}", ConsoleColor.DarkBlue);
     }
     public static void Warn(string message)
     {
-        LabApi.Features.Console.Logger.Raw($"[Warn] [{Plugin.Instance.Name}] {message}", ConsoleColor.Yellow);
+        ServerConsole.AddLog($"[Warn] [{Plugin.Instance.Name}] {message}", ConsoleColor.Yellow);
     }
     public static void Update(string message)
     {
-        LabApi.Features.Console.Logger.Raw($"{message}", ConsoleColor.Cyan);
+        ServerConsole.AddLog($"{message}", ConsoleColor.Cyan);
     }
     public static void Error(string message)
     {
-        LabApi.Features.Console.Logger.Raw($"[Error] [{Plugin.Instance.Name}] {message}", ConsoleColor.Red);
+        ServerConsole.AddLog($"[Error] [{Plugin.Instance.Name}] {message}", ConsoleColor.Red);
     }
 }
