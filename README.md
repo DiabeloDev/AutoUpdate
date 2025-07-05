@@ -6,7 +6,7 @@
 A powerful plugin that automatically updates your other EXILED plugins by downloading them directly from their GitHub releases.
 
 ## Requirements
-- [EXILED](https://github.com/ExSLMod-Team/EXILED) v9.6.1
+- [EXILED](https://github.com/ExMod-Team/EXILED) v9.6.1
 - Newtonsoft.Json
 
 ## Installation
