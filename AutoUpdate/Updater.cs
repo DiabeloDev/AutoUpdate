@@ -51,6 +51,7 @@ namespace AutoUpdate
 
         private static GitHubConfig _githubConfig;
         private static readonly HttpClient HttpClient = new HttpClient();
+        private static readonly Dictionary<string, RepositoryConfig> _dynamicallyRegisteredRepos = new Dictionary<string, RepositoryConfig>();
         
         
         /// <summary>
@@ -65,33 +66,98 @@ namespace AutoUpdate
         #region Public Methods
 
         /// <summary>
+        /// Allows other plugins to register themselves for auto-updating.
+        /// This should be called during the plugin's OnEnabled lifecycle event.
+        /// </summary>
+        /// <param name="pluginName">The name of the plugin (must match the plugin's Name property).</param>
+        /// <param name="githubUser">The GitHub username or organization.</param>
+        /// <param name="githubRepo">The GitHub repository name.</param>
+        /// <param name="fileName">Optional: The specific DLL file name in the release. If null, the first .dll found will be used.</param>
+        public static void RegisterPluginForUpdates(string pluginName, string githubUser, string githubRepo, string fileName = null)
+        {
+            if (string.IsNullOrEmpty(pluginName) || string.IsNullOrEmpty(githubUser) || string.IsNullOrEmpty(githubRepo))
+            {
+                Log.Warn($"[Integration] A plugin tried to register for AutoUpdate but provided invalid information (pluginName, user, or repo was null/empty).");
+                return;
+            }
+
+            if (_dynamicallyRegisteredRepos.ContainsKey(pluginName))
+            {
+                Log.Debug($"[Integration] Plugin '{pluginName}' is already registered for updates. Overwriting previous registration.");
+            }
+
+            var repoConfig = new RepositoryConfig
+            {
+                User = githubUser,
+                Repository = githubRepo,
+                FileName = fileName
+            };
+
+            _dynamicallyRegisteredRepos[pluginName] = repoConfig;
+            Log.Info($"[Integration] Plugin '{pluginName}' has successfully registered for automatic updates from {githubUser}/{githubRepo}.");
+        }
+        
+        /// <summary>
         /// The main entry point for the update process. Loads configurations and checks all configured plugins for updates.
         /// </summary>
         public static async Task CheckForUpdates()
         {
             LoadGitHubConfig();
 
-            var repositories = GetConfiguredRepositories();
-            if (repositories == null || !repositories.Any())
+            var combinedRepositories = GetCombinedRepositories();
+            if (combinedRepositories == null || !combinedRepositories.Any())
             {
-                Log.Info("The repositories configuration file is empty or missing. Nothing to check.");
+                Log.Info("No plugins configured for update, either from repositories.json or dynamic registration.");
                 return;
             }
-
-            Log.Info($"Starting update check for {repositories.Count} plugins...");
             
-            var updateTasks = repositories.Select(ProcessPluginUpdate);
-            var results = await Task.WhenAll(updateTasks);
+            var fileRepositories = GetRepositoriesFromFile();
 
-            LogSummary(results.ToList());
+            Log.Info($"Starting update check for {combinedRepositories.Count} plugins...");
+            
+            var updateTasks = combinedRepositories.Select(ProcessPluginUpdate);
+            var results = await Task.WhenAll(updateTasks);
+            
+            LogSummary(results.ToList(), fileRepositories);
         }
+        
         /// <summary>
-        /// Loads the repositories configuration
+        /// Gets a combined list of repositories from both the configuration file and dynamic registrations.
+        /// File configurations take precedence over dynamic ones.
         /// </summary>
-        /// <returns>A dictionary of repository configurations.</returns>
-        public static Dictionary<string, RepositoryConfig> GetConfiguredRepositories()
+        /// <returns>A dictionary of all repository configurations to be checked.</returns>
+        public static Dictionary<string, RepositoryConfig> GetCombinedRepositories()
+        {
+            var fileRepositories = GetRepositoriesFromFile();
+
+            // Start with dynamically registered repos, using a case-insensitive comparer
+            var combinedRepositories = new Dictionary<string, RepositoryConfig>(_dynamicallyRegisteredRepos, StringComparer.OrdinalIgnoreCase);
+
+            // Overwrite with file-based configs, as they have priority
+            foreach (var repo in fileRepositories)
+            {
+                combinedRepositories[repo.Key] = repo.Value;
+            }
+
+            return combinedRepositories;
+        }
+        
+        /// <summary>
+        /// Loads the repositories configuration from the JSON file.
+        /// </summary>
+        /// <returns>A dictionary of repository configurations from the file.</returns>
+        public static Dictionary<string, RepositoryConfig> GetRepositoriesFromFile()
         {
             return LoadConfig(Plugin.Instance.Config.RepositoriesConfigPath, CreateDefaultRepositoriesConfig);
+        }
+        
+        /// <summary>
+        /// Exposes the list of plugins that have registered themselves dynamically.
+        /// </summary>
+        /// <returns>A read-only dictionary of dynamically registered repositories.</returns>
+        public static IReadOnlyDictionary<string, RepositoryConfig> GetDynamicallyRegisteredRepos()
+        {
+            return _dynamicallyRegisteredRepos;
         }
         #endregion
 
@@ -340,7 +406,7 @@ namespace AutoUpdate
         /// <summary>
         /// Logs a formatted summary of all update check results to the console.
         /// </summary>
-        private static void LogSummary(List<UpdateResult> results)
+        private static void LogSummary(List<UpdateResult> results, IReadOnlyDictionary<string, RepositoryConfig> fileRepositories)
         {
             const int innerWidth = 80;
 
@@ -361,14 +427,16 @@ namespace AutoUpdate
             {
                 foreach (var result in results)
                 {
+                    string sourceType = fileRepositories.ContainsKey(result.PluginName) ? "[File]" : "[Integration]";
+                    
                     string content = result.Status switch
                     {
-                        UpdateStatus.Updated => $"[↑] {result.PluginName}: Updated from v{result.OldVersion} to v{result.NewVersion}",
-                        UpdateStatus.UpToDate => $"[✓] {result.PluginName}: Is up to date (v{result.OldVersion})",
-                        UpdateStatus.PluginNotFound => $"[X] {result.PluginName}: Plugin not found on this server.",
+                        UpdateStatus.Updated => $"[↑] {result.PluginName} {sourceType}: Updated from v{result.OldVersion} to v{result.NewVersion}",
+                        UpdateStatus.UpToDate => $"[✓] {result.PluginName} {sourceType}: Is up to date (v{result.OldVersion})",
+                        UpdateStatus.PluginNotFound => $"[X] {result.PluginName} {sourceType}: Plugin not found on this server.",
                         UpdateStatus.ApiError or UpdateStatus.NoDllFound or UpdateStatus.WriteError or UpdateStatus.ConfigError 
-                            => $"[X] {result.PluginName}: Error - {result.ErrorMessage}",
-                        _ => $"[?] {result.PluginName}: Unknown status."
+                            => $"[X] {result.PluginName} {sourceType}: Error - {result.ErrorMessage}",
+                        _ => $"[?] {result.PluginName} {sourceType}: Unknown status."
                     };
                     LogWrappedLine(content, innerWidth);
                 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
-using AutoUpdate.Models;
 using CommandSystem;
 using Exiled.API.Interfaces;
 using Exiled.Loader;
@@ -11,9 +10,10 @@ namespace AutoUpdate.Commands
 {
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     [CommandHandler(typeof(GameConsoleCommandHandler))]
-    public class AutoUpdateCommand : ICommand
+    public class AutoUpdateCommand : ICommand, IUsageProvider
     {
         public string Command => "autoupdate";
+        public string[] Usage { get; } = ["check/list/info"];
         public string[] Aliases => new[] { "au" };
         public string Description => "Manages the AutoUpdate plugin. Available subcommands: check, list, info.";
         public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
@@ -63,18 +63,22 @@ namespace AutoUpdate.Commands
                 return false;
             }
 
-            var repositories = Updater.GetConfiguredRepositories();
+            var combinedRepos = Updater.GetCombinedRepositories();
+            var fileRepos = Updater.GetRepositoriesFromFile();
 
-            if (repositories == null || !repositories.Any())
+            if (combinedRepos == null || !combinedRepos.Any())
             {
-                response = "No plugins are configured for auto-update in the repositories.json file.";
+                response = "No plugins are configured for auto-update.";
                 return true;
             }
             
             var sb = new StringBuilder("The following plugins are configured for AutoUpdate:\n");
-            foreach (var repoEntry in repositories)
+            foreach (var repoEntry in combinedRepos)
             {
-                sb.AppendLine($"- {repoEntry.Key} (Source: {repoEntry.Value.User}/{repoEntry.Value.Repository})");
+                bool isFromFile = fileRepos.Keys.Any(k => k.Equals(repoEntry.Key, StringComparison.OrdinalIgnoreCase));
+                string sourceType = isFromFile ? "File" : "Integration";
+                
+                sb.AppendLine($"- {repoEntry.Key} (Source: {repoEntry.Value.User}/{repoEntry.Value.Repository}) [Type: {sourceType}]");
             }
 
             response = sb.ToString();
@@ -95,20 +99,17 @@ namespace AutoUpdate.Commands
             }
 
             string pluginName = arguments.At(1);
-            var repositories = Updater.GetConfiguredRepositories();
+            var repositories = Updater.GetCombinedRepositories();
 
-            var repoEntry = repositories.FirstOrDefault(kvp => kvp.Key.Equals(pluginName, StringComparison.OrdinalIgnoreCase));
-
-            if (repoEntry.Key == null)
+            if (!repositories.TryGetValue(pluginName, out var config))
             {
-                response = $"Plugin '{pluginName}' is not configured for auto-update in the repositories.json file.";
+                response = $"Plugin '{pluginName}' is not configured for auto-update.";
                 return false;
             }
 
-            RepositoryConfig config = repoEntry.Value;
-            IPlugin<IConfig> installedPlugin = Loader.GetPlugin(repoEntry.Key);
+            IPlugin<IConfig> installedPlugin = Loader.GetPlugin(pluginName);
             
-            var sb = new StringBuilder($"AutoUpdate Info for '{repoEntry.Key}':\n");
+            var sb = new StringBuilder($"AutoUpdate Info for '{pluginName}':\n");
             sb.AppendLine($" - GitHub User: {config.User}");
             sb.AppendLine($" - GitHub Repository: {config.Repository}");
             sb.AppendLine($" - Specific DLL Name: {(string.IsNullOrEmpty(config.FileName) ? "(Not set, will find the first .dll)" : config.FileName)}");
