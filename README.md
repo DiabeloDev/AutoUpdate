@@ -1,6 +1,5 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/DiabeloDev/AutoUpdate/total?style=for-the-badge) <br>
 ![Latest](https://img.shields.io/github/v/release/DiabeloDev/AutoUpdate?style=for-the-badge&label=Latest%20Release&color=%23D91656) <br>
-![alt text](https://img.shields.io/endpoint?url=https://autoupdate.diabelo.xyz/api/badge/active_servers&style=for-the-badge)
 
 # AutoUpdate for EXILED
 
