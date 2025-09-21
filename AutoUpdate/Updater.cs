@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using AutoUpdate.Models;
@@ -51,8 +52,7 @@ namespace AutoUpdate
 
         private static GitHubConfig _githubConfig;
         private static readonly HttpClient HttpClient = new HttpClient();
-        private static readonly Dictionary<string, RepositoryConfig> _dynamicallyRegisteredRepos = new Dictionary<string, RepositoryConfig>();
-        
+        private static readonly Dictionary<string, RepositoryConfig> DynamicallyRegisteredRepos = new Dictionary<string, RepositoryConfig>();
         
         /// <summary>
         /// Static constructor to initialize the HttpClient.
@@ -81,7 +81,7 @@ namespace AutoUpdate
                 return;
             }
 
-            if (_dynamicallyRegisteredRepos.ContainsKey(pluginName))
+            if (DynamicallyRegisteredRepos.ContainsKey(pluginName))
             {
                 Log.Debug($"[Integration] Plugin '{pluginName}' is already registered for updates. Overwriting previous registration.");
             }
@@ -93,8 +93,8 @@ namespace AutoUpdate
                 FileName = fileName
             };
 
-            _dynamicallyRegisteredRepos[pluginName] = repoConfig;
-            Log.Info($"[Integration] Plugin '{pluginName}' has successfully registered for automatic updates from {githubUser}/{githubRepo}.");
+            DynamicallyRegisteredRepos[pluginName] = repoConfig;
+            Log.Debug($"[Integration] Plugin '{pluginName}' has successfully registered for automatic updates from {githubUser}/{githubRepo}.");
         }
         
         /// <summary>
@@ -131,7 +131,7 @@ namespace AutoUpdate
             var fileRepositories = GetRepositoriesFromFile();
 
             // Start with dynamically registered repos, using a case-insensitive comparer
-            var combinedRepositories = new Dictionary<string, RepositoryConfig>(_dynamicallyRegisteredRepos, StringComparer.OrdinalIgnoreCase);
+            var combinedRepositories = new Dictionary<string, RepositoryConfig>(DynamicallyRegisteredRepos, StringComparer.OrdinalIgnoreCase);
 
             // Overwrite with file-based configs, as they have priority
             foreach (var repo in fileRepositories)
@@ -157,7 +157,7 @@ namespace AutoUpdate
         /// <returns>A read-only dictionary of dynamically registered repositories.</returns>
         public static IReadOnlyDictionary<string, RepositoryConfig> GetDynamicallyRegisteredRepos()
         {
-            return _dynamicallyRegisteredRepos;
+            return DynamicallyRegisteredRepos;
         }
         #endregion
 
@@ -457,6 +457,73 @@ namespace AutoUpdate
             
             Log.Update(bottomBorder);
             Log.Update(string.Empty);
+            _ = SendDiscordWebhookAsync(results, fileRepositories);
+        }
+        
+        /// <summary>
+        /// Asynchronously sends the update summary to a Discord webhook if configured.
+        /// </summary>
+        private static async Task SendDiscordWebhookAsync(List<UpdateResult> results, IReadOnlyDictionary<string, RepositoryConfig> fileRepositories)
+        {
+            var config = Plugin.Instance.Config;
+            if (!config.DiscordWebhookEnabled || string.IsNullOrEmpty(config.DiscordWebhookUrl))
+                return;
+
+            try
+            {
+                int updatesFound = results.Count(r => r.Status == UpdateStatus.Updated);
+                var embed = new Embed
+                {
+                    Title = "AutoUpdate - Scan Summary",
+                    Color = updatesFound > 0 ? 16705372 : 5763719,
+                    Description = updatesFound > 0
+                        ? $"**Found {updatesFound} {GetEnglishUpdateForm(updatesFound)}.** A server restart is required to apply."
+                        : "**All plugins are up to date!**",
+                    Footer = new Footer { Text = $"Check completed at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC" }
+                };
+
+                foreach (var result in results)
+                {
+                    string sourceType = fileRepositories.ContainsKey(result.PluginName) ? "File" : "Integration";
+                    var field = new Field { Inline = false };
+
+                    switch (result.Status)
+                    {
+                        case UpdateStatus.Updated:
+                            field.Name = $"⬆️ {result.PluginName} `[{sourceType}]`";
+                            field.Value = $"Updated from `v{result.OldVersion}` to `v{result.NewVersion}`";
+                            break;
+                        case UpdateStatus.UpToDate:
+                            field.Name = $"✅ {result.PluginName} `[{sourceType}]`";
+                            field.Value = $"Is up to date (`v{result.OldVersion}`)";
+                            break;
+                        default:
+                            field.Name = $"❌ {result.PluginName} `[{sourceType}]`";
+                            field.Value = $"**Error:** {result.ErrorMessage ?? "Plugin not found on this server."}";
+                            break;
+                    }
+                    embed.Fields.Add(field);
+                }
+                
+                var payload = new DiscordWebhookPayload
+                {
+                    Username = config.WebhookUsername,
+                    Embeds = new List<Embed> { embed }
+                };
+
+                string json = JsonConvert.SerializeObject(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await HttpClient.PostAsync(config.DiscordWebhookUrl, content);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Log.Warn($"Failed to send Discord webhook notification. Status: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"An error occurred while sending the Discord webhook: {ex.Message}");
+            }
         }
         
         /// <summary>

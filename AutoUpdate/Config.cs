@@ -14,5 +14,15 @@ namespace AutoUpdate
         public string GitHubConfigPath { get; set; } = $"{Paths.Configs}/AutoUpdate/github.json";
         [Description("Run updater at start")] 
         public bool RunUpdaterAtStart { get; set; } = true;
+        [Description("--- Schedule Settings ---\nEnable periodic update checks.")]
+        public bool ScheduleEnabled { get; set; } = false;
+        [Description("How often (in hours) should the updater check for new plugin versions? Minimum: 1")]
+        public float CheckIntervalHours { get; set; } = 12.0f;
+        [Description("--- Discord Webhook Settings ---\nEnable sending update summaries to a Discord webhook.")]
+        public bool DiscordWebhookEnabled { get; set; } = false;
+        [Description("The URL of the Discord webhook to send notifications to.")]
+        public string DiscordWebhookUrl { get; set; } = "";
+        [Description("The username for the webhook bot.")]
+        public string WebhookUsername { get; set; } = "AutoUpdate Bot";
     }
 }
