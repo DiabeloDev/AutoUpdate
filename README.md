@@ -141,7 +141,7 @@ public class YourPlugin : Plugin<Config>
             // If all checks passed, prepare the parameters and invoke the method.
             object[] parameters = new object[]
             {
-                this.Name,                  // Your plugin's name
+                Name,                  // Your plugin's name
                 "YourGitHubUsername",       // Your GitHub username or organization
                 "YourPluginRepository",     // The name of your plugin's repository
                 "YourPluginFile.dll"        // (Optional but recommended) The specific .dll file name in your release
