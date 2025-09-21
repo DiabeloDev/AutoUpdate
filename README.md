@@ -8,6 +8,8 @@ A powerful plugin that automatically updates your other EXILED plugins by downlo
 ## ✨ Core Features
 
 -   **Automatic Updates:** Downloads the latest version of plugins directly from their GitHub release assets.
+-   **Scheduled Checks:** Automatically checks for updates on a configurable schedule, perfect for servers with long uptimes.
+-   **Discord Notifications:** Sends detailed, formatted update summaries to a Discord webhook.
 -   **Configuration via File:** Easily manage a list of plugins to watch using a simple `repositories.json` file.
 -   **Dynamic Integration:** Other plugins can register themselves for updates without needing to be in the config file.
 -   **GitHub API Support:** Optionally use a GitHub Personal Access Token (PAT) to increase API rate limits.
@@ -192,6 +194,18 @@ repositories_config_path: '/home/container/.config/EXILED/Configs/AutoUpdate/rep
 git_hub_config_path: '/home/container/.config/EXILED/Configs/AutoUpdate/github.json'
 # Run updater at start
 run_updater_at_start: true
+# --- Schedule Settings ---
+# Enable periodic update checks.
+schedule_enabled: false
+# How often (in hours) should the updater check for new plugin versions? Minimum: 1
+check_interval_hours: 12
+# --- Discord Webhook Settings ---
+# Enable sending update summaries to a Discord webhook.
+discord_webhook_enabled: true
+# The URL of the Discord webhook to send notifications to.
+discord_webhook_url: ''
+# The username for the webhook bot.
+webhook_username: 'AutoUpdate Bot'
 ```
 
 ## 💬 Support
