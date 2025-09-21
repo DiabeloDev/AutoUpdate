@@ -4,6 +4,13 @@ using Exiled.API.Interfaces;
 
 namespace AutoUpdate
 {
+    public enum AnalyticsConsent
+    {
+        Full = 1,
+        PluginsOnly = 2,
+        Anonymous = 3,
+        None = 4,
+    }
     public class Config : IConfig
     {
         public bool IsEnabled { get; set; } = true;
@@ -22,7 +29,9 @@ namespace AutoUpdate
         public bool DiscordWebhookEnabled { get; set; } = false;
         [Description("The URL of the Discord webhook to send notifications to.")]
         public string DiscordWebhookUrl { get; set; } = "";
-        [Description("The username for the webhook bot.")]
-        public string WebhookUsername { get; set; } = "AutoUpdate Bot";
+        [Description("The username for the webhook.")]
+        public string WebhookUsername { get; set; } = "AutoUpdate";
+        [Description("--- Analytics Settings ---\nTo help the developer improve the plugin, anonymous data can be sent.\nSet the level of data you are willing to share. This is highly appreciated!\n1=Full, 2=PluginsOnly, 3=Anonymous. Default: 3 (Anonymous).")]
+        public AnalyticsConsent AnalyticsConsentLevel { get; set; } = AnalyticsConsent.Anonymous;
     }
 }
