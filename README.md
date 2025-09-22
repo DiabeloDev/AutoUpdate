@@ -204,8 +204,13 @@ check_interval_hours: 12
 discord_webhook_enabled: true
 # The URL of the Discord webhook to send notifications to.
 discord_webhook_url: ''
-# The username for the webhook bot.
-webhook_username: 'AutoUpdate Bot'
+# The username for the webhook.
+webhook_username: 'AutoUpdate'
+# --- Analytics Settings ---
+# To help the developer improve the plugin, anonymous data can be sent.
+# Set the level of data you are willing to share. This is highly appreciated!
+# 1=Full, 2=PluginsOnly, 3=Anonymousm 4=None. Default: 3 (Anonymous).
+analytics_consent_level: None
 ```
 
 ## 💬 Support
