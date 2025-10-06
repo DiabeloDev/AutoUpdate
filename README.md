@@ -196,9 +196,9 @@ git_hub_config_path: '/home/container/.config/EXILED/Configs/AutoUpdate/github.j
 run_updater_at_start: true
 # --- Schedule Settings ---
 # Enable periodic update checks.
-schedule_enabled: false
+schedule_enabled: true
 # How often (in hours) should the updater check for new plugin versions? Minimum: 1
-check_interval_hours: 12
+check_interval_hours: 2
 # --- Discord Webhook Settings ---
 # Enable sending update summaries to a Discord webhook.
 discord_webhook_enabled: true
